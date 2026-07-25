@@ -1,3 +1,4 @@
-kmain.o
-kernel.elf
-boot.bin
+*.bin
+*.o
+*.img
+*.elf
