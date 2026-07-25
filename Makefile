@@ -1,16 +1,39 @@
 CC := clang
 LD := ld.lld
+ASM := nasm
 
 CFLAGS  := --target=x86_64-unknown-none-elf -ffreestanding -nostdlib -mno-red-zone -fno-stack-protector -Wall -Wextra
-LDFLAGS := -T linker.ld
+LDFLAGS := -T kernel/linker.ld
+BUILD := build
 
-kernel.elf: kmain.o linker.ld
-	$(LD) $(LDFLAGS) kmain.o -o kernel.elf
+all: $(BUILD)/os.img
 
-kmain.o: src/kmain.c
-	$(CC) $(CFLAGS) -c src/kmain.c -o kmain.o
+$(BUILD)/bootstage1.bin: boot/bootstage1.asm | $(BUILD)
+	$(ASM) -f bin $< -o $@
+
+$(BUILD)/bootstage2.bin: boot/bootstage2.asm | $(BUILD)
+	$(ASM) -f bin $< -o $@
+
+$(BUILD)/entry.o: kernel/entry.asm | $(BUILD)
+	$(ASM) -f elf64 $< -o $@
+
+$(BUILD)/kmain.o: kernel/kmain.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/kernel.elf: $(BUILD)/entry.o $(BUILD)/kmain.o kernel/linker.ld
+	$(LD) $(LDFLAGS) $(BUILD)/entry.o $(BUILD)/kmain.o -o $@
+
+$(BUILD)/os.img: $(BUILD)/bootstage1.bin $(BUILD)/bootstage2.bin $(BUILD)/kernel.elf
+	cat $(BUILD)/bootstage1.bin $(BUILD)/bootstage2.bin $(BUILD)/kernel.elf > $@
+	truncate -s 131072 $@
+
+$(BUILD):
+	mkdir -p $(BUILD)
+
+run: $(BUILD)/os.img
+	qemu-system-x86_64 -drive format=raw,file=$(BUILD)/os.img -m 512M -nographic
 
 clean:
-	rm -f kmain.o kernel.elf
+	rm -rf $(BUILD)
 
-.PHONY: clean
+.PHONY: all run clean
