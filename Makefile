@@ -5,6 +5,8 @@ ASM := nasm
 CFLAGS  := --target=x86_64-unknown-none-elf -ffreestanding -nostdlib -mno-red-zone -fno-stack-protector -Wall -Wextra
 LDFLAGS := -T kernel/linker.ld
 BUILD := build
+HEADERS := $(wildcard kernel/*.h)
+KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o
 
 all: $(BUILD)/os.img
 
@@ -17,11 +19,11 @@ $(BUILD)/bootstage2.bin: boot/bootstage2.asm | $(BUILD)
 $(BUILD)/entry.o: kernel/entry.asm | $(BUILD)
 	$(ASM) -f elf64 $< -o $@
 
-$(BUILD)/kmain.o: kernel/kmain.c | $(BUILD)
+$(BUILD)/%.o: kernel/%.c $(HEADERS) | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/kernel.elf: $(BUILD)/entry.o $(BUILD)/kmain.o kernel/linker.ld
-	$(LD) $(LDFLAGS) $(BUILD)/entry.o $(BUILD)/kmain.o -o $@
+$(BUILD)/kernel.elf: $(KOBJS) kernel/linker.ld
+	$(LD) $(LDFLAGS) $(KOBJS) -o $@
 
 $(BUILD)/os.img: $(BUILD)/bootstage1.bin $(BUILD)/bootstage2.bin $(BUILD)/kernel.elf
 	cat $(BUILD)/bootstage1.bin $(BUILD)/bootstage2.bin $(BUILD)/kernel.elf > $@
