@@ -38,7 +38,8 @@ void pmm_init(boot_info_t *info) {
             max_addr = m[i].base + m[i].length;
     total_frames = max_addr / PAGE;
 
-    bitmap = (uint8_t *)(((uint64_t)_kernel_end + PAGE - 1) & ~(uint64_t)(PAGE - 1));
+    uint64_t kend_phys = (uint64_t)_kernel_end - 0xffffffff80000000ull; // high virt -> physical
+    bitmap = (uint8_t *)((kend_phys + PAGE - 1) & ~(uint64_t)(PAGE - 1));
     uint64_t bitmap_bytes = (total_frames + 7) / 8;
 
     for (uint64_t i = 0; i < bitmap_bytes; i++) bitmap[i] = 0xFF; // all used

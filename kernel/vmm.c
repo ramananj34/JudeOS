@@ -69,8 +69,13 @@ void vmm_init(void) {
     uint64_t pd_phys   = (uint64_t)pmm_alloc_frame();
     uint64_t *pdpt = p2v(pdpt_phys), *pd = p2v(pd_phys);
     for (int i = 0; i < ENTRIES; i++) { pml4[i] = 0; pdpt[i] = 0; pd[i] = 0; }
-    pml4[0] = pdpt_phys | PTE_PRESENT | PTE_WRITABLE;
+    uint64_t pdpt_hi_phys = (uint64_t)pmm_alloc_frame();
+    uint64_t *pdpt_hi = p2v(pdpt_hi_phys);
+    for (int i = 0; i < ENTRIES; i++) pdpt_hi[i] = 0;
+    pml4[0] = pdpt_phys | PTE_PRESENT | PTE_WRITABLE; // low identity map
+    pml4[511] = pdpt_hi_phys | PTE_PRESENT | PTE_WRITABLE; // higher half
     pdpt[0] = pd_phys | PTE_PRESENT | PTE_WRITABLE;
+    pdpt_hi[510] = pd_phys | PTE_PRESENT | PTE_WRITABLE; // shares the same 1 GiB PD
     for (int i = 0; i < ENTRIES; i++)
         pd[i] = ((uint64_t)i * 0x200000) | PTE_PRESENT | PTE_WRITABLE | PTE_HUGE;
 

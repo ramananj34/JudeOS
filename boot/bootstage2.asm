@@ -7,8 +7,8 @@ DATA_SEG equ gdt_data - gdt_start
 CODE64_SEG equ gdt64_code - gdt64_start
 DATA64_SEG equ gdt64_data - gdt64_start
 
-BOOT_INFO equ 0x4000 ; Struct for C kernel
-MMAP_BUFFER equ 0x5000 ; Array of E820 entries
+BOOT_INFO equ 0x9000 ; Struct for C kernel
+MMAP_BUFFER equ 0xA000 ; Array of E820 entries
 KERNEL_LBA equ 9 ; Sector 9 is after MBR + stage 2
 ELF_BUFFER equ 0x10000 ; Where raw ELF lands
 KERNEL_SECTORS equ 100 ; read 51,200 bytes
@@ -186,7 +186,7 @@ protected_mode:
     mov edi, 0x1000
     mov cr3, edi
     xor eax, eax
-    mov ecx, (3*4096)/4
+    mov ecx, (4*4096)/4
     rep stosd
     mov dword [0x1000], 0x2000 | 3 ; Paging pml4 -> pdpt
     mov dword [0x2000], 0x3000 | 3 ; pdpt -> pd 0> pt
@@ -199,6 +199,9 @@ protected_mode:
     add eax, 0x200000
     dec ecx
     jnz .fill_pd
+
+    mov dword [0x1000 + 511*8], 0x4000 | 3 ; PML4[511] -> higher-half PDPT
+    mov dword [0x4000 + 510*8], 0x3000 | 3 ; PDPT_high[510] -> same 1 GiB PD
 
     mov eax, cr4 ; CR4 bit 5 PAE (physical address extension)
     or eax, 1 << 5
@@ -276,7 +279,7 @@ long_mode: ; Parse and load the ELF
     call print64
     mov rsi, [r12 + 0x08]
     add rsi, rbx
-    mov rdi, [r12 + 0x10]
+    mov rdi, [r12 + 0x18]
     mov rcx, [r12 + 0x20]
     rep movsb
     mov rcx, [r12 + 0x28]
