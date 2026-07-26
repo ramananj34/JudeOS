@@ -19,6 +19,7 @@ static struct idt_entry idt[256];
 static struct __attribute__((packed)) { uint16_t limit; uint64_t base; } idtr;
 
 extern void *isr_stub_table[];
+extern void *irq_stub_table[];
 
 struct regs {
     uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
@@ -64,6 +65,7 @@ static void set_gate(int n, void *handler) {
 
 void idt_init(void) {
     for (int i = 0; i < 32; i++) set_gate(i, isr_stub_table[i]);
+    for (int i = 0; i < 16; i++) set_gate(32 + i, irq_stub_table[i]);
     idtr.limit = sizeof(idt) - 1;
     idtr.base  = (uint64_t)&idt;
     __asm__ volatile ("lidt %0" : : "m"(idtr));

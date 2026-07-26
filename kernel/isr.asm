@@ -1,3 +1,5 @@
+; Interrupt Service Routine (ISR)
+
 [bits 64]
 extern exception_handler
 global isr_stub_table
@@ -91,5 +93,56 @@ isr_stub_table:
 %assign i 0
 %rep 32
     dq isr_stub_ %+ i
+%assign i i+1
+%endrep
+
+; hardware IRQ stubs
+extern irq_dispatch
+global irq_stub_table
+
+%macro IRQ 1
+irq_stub_%1:
+    push %1 ; push IRQ number (0..15)
+    jmp irq_common
+%endmacro
+
+section .text
+irq_common:
+    push rax
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    mov rdi, [rsp + 72] ; the IRQ number the stub pushed
+    sub rsp, 8 ; 16-byte align the stack before the C call
+    call irq_dispatch
+    add rsp, 8
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rax
+    add rsp, 8 ; discard the IRQ number
+    iretq
+
+%assign i 0
+%rep 16
+    IRQ i
+%assign i i+1
+%endrep
+
+section .rodata
+irq_stub_table:
+%assign i 0
+%rep 16
+    dq irq_stub_ %+ i
 %assign i i+1
 %endrep

@@ -2,6 +2,8 @@
 #include "console.h" //CLI
 #include "gdt.h" //GDT
 #include "idt.h" //IDT
+#include "interrupts.h"
+#include "timer.h"
 
 //Memory map information
 typedef struct {
@@ -39,5 +41,17 @@ void kmain(boot_info_t *info) {
     idt_init();
     kprintf("[kernel] IDT loaded, exception handlers armed.\n");
 
-    for (;;) __asm__ volatile ("hlt");
+    pic_remap();
+    kprintf("[kernel] PIC remapped to 0x20..0x2F.\n");
+    timer_init(100);
+    kprintf("[kernel] PIT timer started at 100 Hz.\n");
+    __asm__ volatile ("sti");
+    kprintf("[kernel] interrupts enabled.\n");
+
+    uint64_t last = 0;
+    for (;;) {
+        uint64_t t = timer_ticks();
+        if (t / 100 != last) { last = t / 100; kprintf("[kernel] uptime %lu s (%lu ticks)\n", last, t); }
+        __asm__ volatile ("hlt");
+    }
 }
