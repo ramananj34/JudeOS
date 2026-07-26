@@ -1,6 +1,7 @@
 #include "console.h"
 #include <stdint.h>
 #include <stdarg.h>
+#include "interrupts.h"
 
 #define COM1 0x3f8
 
@@ -81,4 +82,31 @@ void kprintf(const char *fmt, ...) {
         }
     }
     va_end(ap);
+}
+
+//Do some UART
+//serial input (interrupt-driven)
+#define IN_BUF 256
+static volatile char inbuf[IN_BUF];
+static volatile uint32_t in_head, in_tail;
+
+static void serial_irq(void) {
+    while (inb(COM1 + 5) & 0x01) { // while receive-data-ready
+        char c = (char)inb(COM1);
+        uint32_t next = (in_head + 1) % IN_BUF;
+        if (next != in_tail) { inbuf[in_head] = c; in_head = next; } // else drop
+    }
+}
+
+void serial_input_init(void) {
+    outb(COM1 + 1, 0x01); // IER: enable RX interrupt
+    irq_install_handler(4, serial_irq); // COM1 -> IRQ4
+    pic_unmask(4);
+}
+
+int kgetc(void) { // non-blocking; -1 if empty
+    if (in_tail == in_head) return -1;
+    char c = inbuf[in_tail];
+    in_tail = (in_tail + 1) % IN_BUF;
+    return (int)(unsigned char)c;
 }

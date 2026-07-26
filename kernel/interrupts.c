@@ -46,8 +46,15 @@ static void pic_eoi(int irq) {
 
 void irq_install_handler(int irq, irq_handler_t h) { handlers[irq] = h; }
 
+static uint16_t pic_get_isr(void) {
+    outb(PIC1, 0x0B); outb(PIC2, 0x0B); // OCW3: read the In-Service Register
+    return ((uint16_t)inb(PIC2) << 8) | inb(PIC1);
+}
+
 //called from irq_common (isr.asm) with the IRQ number in rdi
 void irq_dispatch(uint64_t irq) {
+    if (irq == 7  && !(pic_get_isr() & (1 << 7)))  return; // spurious: no EOI
+    if (irq == 15 && !(pic_get_isr() & (1 << 15))) { outb(PIC1, 0x20); return; } // spurious: EOI master only
     if (irq < 16 && handlers[irq]) handlers[irq]();
     pic_eoi((int)irq);
 }

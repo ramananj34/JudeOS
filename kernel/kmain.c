@@ -47,11 +47,21 @@ void kmain(boot_info_t *info) {
     kprintf("[kernel] PIT timer started at 100 Hz.\n");
     __asm__ volatile ("sti");
     kprintf("[kernel] interrupts enabled.\n");
+    serial_input_init();
+    kprintf("[kernel] Able to recieve serial input.\n");
 
+    /* Time Demo
     uint64_t last = 0;
     for (;;) {
         uint64_t t = timer_ticks();
         if (t / 100 != last) { last = t / 100; kprintf("[kernel] uptime %lu s (%lu ticks)\n", last, t); }
+        __asm__ volatile ("hlt");
+    } */
+
+    // Input demo
+    for (;;) {
+        int c = kgetc();
+        if (c >= 0) kprintf("[kernel] got: '%c' (0x%x)\n", (char)c, c);
         __asm__ volatile ("hlt");
     }
 }
