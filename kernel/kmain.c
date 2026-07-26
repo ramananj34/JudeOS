@@ -72,5 +72,9 @@ void kmain(boot_info_t *info) {
     kprintf("after unmap=0x%lx\n", vmm_translate(V));
 
     kprintf("[kernel] kmain runs at %p (higher half)\n", (void *)kmain);
+    /* W^X Demo
+    kprintf("[test] writing to kmain's code...\n");
+    *(volatile uint32_t *)kmain = 0;
+    */
 
 }
