@@ -7,6 +7,7 @@
 #include "bootinfo.h"
 #include "pmm.h" //Physical Memory Manager
 #include "vmm.h" //Virtual Memory Manager
+#include "kheap.h" //The Heap
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -75,6 +76,13 @@ void kmain(boot_info_t *info) {
     /* W^X Demo
     kprintf("[test] writing to kmain's code...\n");
     *(volatile uint32_t *)kmain = 0;
+    */
+
+    kheap_init();
+    /* Heap demo
+    void *p = kmalloc(1234);
+    kprintf("[heap] kmalloc(1234) = %p\n", p);
+    kfree(p);
     */
 
 }
