@@ -8,6 +8,13 @@
 #include "pmm.h" //Physical Memory Manager
 #include "vmm.h" //Virtual Memory Manager
 #include "kheap.h" //The Heap
+#include "thread.h"
+
+//Thread tests
+static volatile int done = 0;
+static void tA(void){ for(int i=0;i<5;i++){ kprintf("A"); yield(); } done++; for(;;) yield(); }
+static void tB(void){ for(int i=0;i<5;i++){ kprintf("B"); yield(); } done++; for(;;) yield(); }
+static void tC(void){ for(int i=0;i<5;i++){ kprintf("C"); yield(); } done++; for(;;) yield(); }
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -83,6 +90,14 @@ void kmain(boot_info_t *info) {
     void *p = kmalloc(1234);
     kprintf("[heap] kmalloc(1234) = %p\n", p);
     kfree(p);
+    */
+
+    sched_init();
+    /* Thread switching demo
+    thread_create(tA); thread_create(tB); thread_create(tC);
+    kprintf("[sched] 3 threads taking turns: ");
+    while (done < 3) yield();
+    kprintf("\n[sched] cooperative multitasking works.\n");
     */
 
 }

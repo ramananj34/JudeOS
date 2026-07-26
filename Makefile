@@ -6,7 +6,7 @@ CFLAGS  := --target=x86_64-unknown-none-elf -ffreestanding -nostdlib -mno-red-zo
 LDFLAGS := -T kernel/linker.ld
 BUILD := build
 HEADERS := $(wildcard kernel/*.h)
-KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o $(BUILD)/gdt.o $(BUILD)/idt.o $(BUILD)/isr.o $(BUILD)/interrupts.o $(BUILD)/timer.o $(BUILD)/pmm.o $(BUILD)/vmm.o $(BUILD)/kheap.o
+KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o $(BUILD)/gdt.o $(BUILD)/idt.o $(BUILD)/isr.o $(BUILD)/interrupts.o $(BUILD)/timer.o $(BUILD)/pmm.o $(BUILD)/vmm.o $(BUILD)/kheap.o $(BUILD)/thread.o $(BUILD)/switch.o
 
 all: $(BUILD)/os.img
 
