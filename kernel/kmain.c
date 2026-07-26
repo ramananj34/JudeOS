@@ -1,25 +1,12 @@
 #include <stdint.h> //Get some integers
-#include "console.h" //CLI
-#include "gdt.h" //GDT
-#include "idt.h" //IDT
+#include "console.h" //Console Line Interface
+#include "gdt.h" //Global Descriptor Table
+#include "idt.h" //Interrupt Descriptor Table
 #include "interrupts.h"
 #include "timer.h"
-
-//Memory map information
-typedef struct {
-    uint64_t base;
-    uint64_t length;
-    uint32_t type; //1=usable 2=reserved 3=ACPI-reclaim 4=ACPI-NVS 5=bad
-    uint32_t acpi;
-} __attribute__((packed)) mmap_entry_t; //Stop padding
-
-//Boot information
-typedef struct {
-    uint32_t mmap_count;
-    uint32_t boot_drive;
-    uint64_t mmap_addr;
-    uint64_t acpi_rsdp;
-} __attribute__((packed)) boot_info_t; //Stop padding
+#include "bootinfo.h"
+#include "pmm.h" //Physical Memory Manager
+#include "vmm.h" //Virtual Memory Manager
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -58,10 +45,30 @@ void kmain(boot_info_t *info) {
         __asm__ volatile ("hlt");
     } */
 
-    // Input demo
+    /* Input demo
     for (;;) {
         int c = kgetc();
         if (c >= 0) kprintf("[kernel] got: '%c' (0x%x)\n", (char)c, c);
         __asm__ volatile ("hlt");
-    }
+    } */
+
+    pmm_init(info);
+    kprintf("[pmm] total: %lu frames (%lu MiB)\n", pmm_total_frames(), pmm_total_frames() * 4096 / 1024 / 1024);
+    kprintf("[pmm] free:  %lu frames (%lu MiB)\n", pmm_free_frames(), pmm_free_frames() * 4096 / 1024 / 1024);
+    void *f = pmm_alloc_frame();
+    *(volatile uint64_t *)f = 0xcafebabedeadbeef;
+    kprintf("[pmm] test frame %p reads back 0x%lx\n", f, *(volatile uint64_t *)f);
+    pmm_free_frame(f);
+
+    vmm_init();
+    kprintf("[vmm] own page tables active, NX enabled.\n");
+    uint64_t P = (uint64_t)pmm_alloc_frame();
+    uint64_t V = 0x40000000; // above the 1 GiB identity map
+    vmm_map(V, P, PTE_WRITABLE);
+    *(volatile uint64_t *)V = 0x1234567890abcdef;
+    kprintf("[vmm] wrote via V=0x%lx, read via P=0x%lx: 0x%lx\n", V, P, *(volatile uint64_t *)P);
+    kprintf("[vmm] translate(V)=0x%lx, ", vmm_translate(V));
+    vmm_unmap(V);
+    kprintf("after unmap=0x%lx\n", vmm_translate(V));
+
 }
