@@ -1,5 +1,7 @@
 #include <stdint.h> //Get some integers
 #include "console.h" //CLI
+#include "gdt.h" //GDT
+#include "idt.h" //IDT
 
 //Memory map information
 typedef struct {
@@ -20,6 +22,7 @@ typedef struct {
 //Putting it together
 void kmain(boot_info_t *info) {
     console_init();
+
     kprintf("[kernel] console up. boot_info at %p\n", info);
     kprintf("[kernel] boot drive: 0x%x\n", info->boot_drive);
     kprintf("[kernel] memory map: %u regions\n", info->mmap_count);
@@ -30,5 +33,11 @@ void kmain(boot_info_t *info) {
         if (m[i].type == 1) usable += m[i].length;
     }
     kprintf("[kernel] usable RAM: %lu bytes (0x%lx)\n", usable, usable);
+
+    gdt_init();
+    kprintf("[kernel] GDT loaded.\n");
+    idt_init();
+    kprintf("[kernel] IDT loaded, exception handlers armed.\n");
+
     for (;;) __asm__ volatile ("hlt");
 }

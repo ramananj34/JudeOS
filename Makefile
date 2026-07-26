@@ -6,7 +6,7 @@ CFLAGS  := --target=x86_64-unknown-none-elf -ffreestanding -nostdlib -mno-red-zo
 LDFLAGS := -T kernel/linker.ld
 BUILD := build
 HEADERS := $(wildcard kernel/*.h)
-KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o
+KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o $(BUILD)/gdt.o $(BUILD)/idt.o $(BUILD)/isr.o
 
 all: $(BUILD)/os.img
 
@@ -16,7 +16,7 @@ $(BUILD)/bootstage1.bin: boot/bootstage1.asm | $(BUILD)
 $(BUILD)/bootstage2.bin: boot/bootstage2.asm | $(BUILD)
 	$(ASM) -f bin $< -o $@
 
-$(BUILD)/entry.o: kernel/entry.asm | $(BUILD)
+$(BUILD)/%.o: kernel/%.asm | $(BUILD)
 	$(ASM) -f elf64 $< -o $@
 
 $(BUILD)/%.o: kernel/%.c $(HEADERS) | $(BUILD)
