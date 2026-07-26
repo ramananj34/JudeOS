@@ -12,9 +12,10 @@
 
 //Thread tests
 static volatile int done = 0;
-static void tA(void){ for(int i=0;i<5;i++){ kprintf("A"); yield(); } done++; for(;;) yield(); }
-static void tB(void){ for(int i=0;i<5;i++){ kprintf("B"); yield(); } done++; for(;;) yield(); }
-static void tC(void){ for(int i=0;i<5;i++){ kprintf("C"); yield(); } done++; for(;;) yield(); }
+static void busy(void){ for (volatile uint64_t i = 0; i < 4000000; i++); }
+static void tA(void){ for(int i=0;i<12;i++){ kprintf("A"); busy(); } done++; for(;;) busy(); }
+static void tB(void){ for(int i=0;i<12;i++){ kprintf("B"); busy(); } done++; for(;;) busy(); }
+static void tC(void){ for(int i=0;i<12;i++){ kprintf("C"); busy(); } done++; for(;;) busy(); }
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -93,11 +94,11 @@ void kmain(boot_info_t *info) {
     */
 
     sched_init();
-    /* Thread switching demo
+    /* Thread demo
     thread_create(tA); thread_create(tB); thread_create(tC);
-    kprintf("[sched] 3 threads taking turns: ");
-    while (done < 3) yield();
-    kprintf("\n[sched] cooperative multitasking works.\n");
+    kprintf("[sched] 3 non-yielding threads, preempted by the timer: ");
+    while (done < 3) busy();
+    kprintf("\n[sched] PREEMPTIVE multitasking works.\n");
     */
 
 }

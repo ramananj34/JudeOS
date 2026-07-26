@@ -19,3 +19,9 @@ context_switch:
     pop rbp
     pop rbx
     ret ; "returns" into the new thread's saved context
+
+; new threads "return" here via context_switch; enable interrupts, then jump to entry (in r15)
+global thread_trampoline
+thread_trampoline:
+    sti
+    jmp r15
