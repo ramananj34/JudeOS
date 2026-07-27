@@ -11,3 +11,25 @@ enter_user:
     push 0x23 ; CS  = user code (index 4, RPL 3)
     push rdi ; RIP = entry
     iretq ; drop to ring 3
+
+default rel
+extern syscall_dispatch
+extern syscall_kstack
+extern saved_user_rsp
+global syscall_entry
+; syscall lands here: rcx=return rip, r11=return rflags, still on the USER stack
+syscall_entry:
+    mov [saved_user_rsp], rsp ; stash user rsp
+    mov rsp, [syscall_kstack] ; switch to a kernel stack
+    push rcx ; save return rip
+    push r11 ; save return rflags
+    ; shuffle to C ABI: dispatch(num=rax, a1=rdi, a2=rsi, a3=rdx)
+    mov rcx, rdx
+    mov rdx, rsi
+    mov rsi, rdi
+    mov rdi, rax
+    call syscall_dispatch
+    pop r11 ; restore return rflags
+    pop rcx ; restore return rip
+    mov rsp, [saved_user_rsp] ; restore user rsp
+    o64 sysret ; back to ring 3

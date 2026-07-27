@@ -10,6 +10,7 @@
 #include "kheap.h" //The Heap
 #include "thread.h"
 #include "spinlock.h"
+#include "syscall.h"
 
 //Thread tests
 /*
@@ -50,6 +51,10 @@ extern void enter_user(uint64_t entry, uint64_t stack);
 //ring-3 machine code: nop; nop; cli (privileged -> #GP); jmp $
 static uint8_t user_stub[] = { 0x90, 0x90, 0xFA, 0xEB, 0xFE };
 */
+
+//Syscall tests
+extern void enter_user(uint64_t entry, uint64_t stack);
+extern uint8_t user_blob[], user_blob_end[];
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -160,6 +165,16 @@ void kmain(boot_info_t *info) {
     kprintf("[user] SHOULD NOT REACH HERE\n");
     */
 
+    syscall_init();
+    /* Syscall tests
+    uint64_t code = 0x8000000000, stack = 0x8000010000;
+    vmm_map(code,  (uint64_t)pmm_alloc_frame(), PTE_USER | PTE_WRITABLE);
+    vmm_map(stack, (uint64_t)pmm_alloc_frame(), PTE_USER | PTE_WRITABLE | PTE_NX);
+    for (uint8_t *p = user_blob; p < user_blob_end; p++)
+        ((volatile uint8_t *)code)[p - user_blob] = *p;
+    kprintf("[user] entering ring 3; it will make system calls...\n");
+    enter_user(code, stack + 4096);
     for (;;) __asm__ volatile ("hlt");
+    */
 
 }
