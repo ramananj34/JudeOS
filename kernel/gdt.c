@@ -1,5 +1,3 @@
-//Three-entry descriptor table (null, kernel code, kernel data)
-
 #include "gdt.h"
 #include <stdint.h>
 
@@ -29,14 +27,23 @@ void gdt_init(void) {
     tss.iomap_base = sizeof(struct tss); //no I/O bitmap: ring 3 gets no port I/O
     uint64_t base = (uint64_t)&tss;
     uint32_t limit = sizeof(struct tss) - 1;
-    uint64_t d = (limit & 0xFFFF) | ((base & 0xFFFFFF) << 16) | ((uint64_t)0x89 << 40) /*present, 64-bit available TSS */ | ((uint64_t)((limit >> 16) & 0xF) << 48) | (((base >> 24) & 0xFF) << 56);
+    uint64_t d = (limit & 0xFFFF)
+               | ((base & 0xFFFFFF) << 16)
+               | ((uint64_t)0x89 << 40) //present, 64-bit available TSS
+               | ((uint64_t)((limit >> 16) & 0xF) << 48)
+               | (((base >> 24) & 0xFF) << 56);
     gdt[5] = d; //0x28 TSS (low)
     gdt[6] = (base >> 32) & 0xFFFFFFFF; //TSS (high)
 
     gdtr.limit = sizeof(gdt) - 1;
     gdtr.base  = (uint64_t)&gdt;
     __asm__ volatile ("lgdt %0" : : "m"(gdtr));
-    __asm__ volatile ("mov $0x10, %%ax\n mov %%ax, %%ds\n mov %%ax, %%es\n mov %%ax, %%ss\n" "mov %%ax, %%fs\n mov %%ax, %%gs\n" "lea 1f(%%rip), %%rax\n push $0x08\n push %%rax\n lretq\n 1:\n" : : : "rax", "memory");
+    __asm__ volatile (
+        "mov $0x10, %%ax\n mov %%ax, %%ds\n mov %%ax, %%es\n mov %%ax, %%ss\n"
+        "mov %%ax, %%fs\n mov %%ax, %%gs\n"
+        "lea 1f(%%rip), %%rax\n push $0x08\n push %%rax\n lretq\n 1:\n"
+        : : : "rax", "memory");
     uint16_t tr = 0x28;
     __asm__ volatile ("ltr %0" : : "r"(tr)); //load the task register
 }
+void tss_set_rsp0(uint64_t rsp0) { tss.rsp0 = rsp0; }

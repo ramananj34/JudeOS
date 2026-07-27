@@ -6,7 +6,7 @@ CFLAGS  := --target=x86_64-unknown-none-elf -ffreestanding -nostdlib -mno-red-zo
 LDFLAGS := -T kernel/linker.ld
 BUILD := build
 HEADERS := $(wildcard kernel/*.h)
-KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o $(BUILD)/gdt.o $(BUILD)/idt.o $(BUILD)/isr.o $(BUILD)/interrupts.o $(BUILD)/timer.o $(BUILD)/pmm.o $(BUILD)/vmm.o $(BUILD)/kheap.o $(BUILD)/thread.o $(BUILD)/switch.o $(BUILD)/spinlock.o $(BUILD)/usermode.o $(BUILD)/syscall.o $(BUILD)/userblob.o
+KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o $(BUILD)/gdt.o $(BUILD)/idt.o $(BUILD)/isr.o $(BUILD)/interrupts.o $(BUILD)/timer.o $(BUILD)/pmm.o $(BUILD)/vmm.o $(BUILD)/kheap.o $(BUILD)/thread.o $(BUILD)/switch.o $(BUILD)/spinlock.o $(BUILD)/usermode.o $(BUILD)/syscall.o $(BUILD)/userblob.o $(BUILD)/process.o
 
 all: $(BUILD)/os.img
 
@@ -29,10 +29,13 @@ $(BUILD)/os.img: $(BUILD)/bootstage1.bin $(BUILD)/bootstage2.bin $(BUILD)/kernel
 	cat $(BUILD)/bootstage1.bin $(BUILD)/bootstage2.bin $(BUILD)/kernel.elf > $@
 	truncate -s 131072 $@
 
-$(BUILD)/user.bin: user/user.asm | $(BUILD)
-	$(ASM) -f bin $< -o $@
+$(BUILD)/user.o: user/user.asm | $(BUILD)
+	$(ASM) -f elf64 $< -o $@
 
-$(BUILD)/userblob.o: kernel/userblob.asm $(BUILD)/user.bin | $(BUILD)
+$(BUILD)/user.elf: $(BUILD)/user.o user/user.ld | $(BUILD)
+	$(LD) -T user/user.ld $(BUILD)/user.o -o $@
+
+$(BUILD)/userblob.o: kernel/userblob.asm $(BUILD)/user.elf | $(BUILD)
 	$(ASM) -f elf64 $< -o $@
 
 $(BUILD):

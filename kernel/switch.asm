@@ -25,3 +25,12 @@ global thread_trampoline
 thread_trampoline:
     sti
     jmp r15
+
+global process_user_trampoline
+process_user_trampoline:
+    push 0x1b ; SS  = user data
+    push r14 ; user rsp
+    push 0x202 ; rflags (IF on)
+    push 0x23 ; CS  = user code
+    push r15 ; user entry
+    iretq

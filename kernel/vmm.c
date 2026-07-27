@@ -1,10 +1,6 @@
-//Virtual Memory Manager
-//PML4 -> PDPT -> PD -> PT
-//Page Table Entry (PTE) flags
-//Bootstrap + NX capability + C^X
-
 #include "vmm.h"
 #include "pmm.h"
+void vmm_remember_kernel_cr3(uint64_t phys);
 
 #define ENTRIES 512
 #define PTE_HUGE (1ull << 7)
@@ -40,12 +36,10 @@ void vmm_map(uint64_t virt, uint64_t phys, uint64_t flags) {
     *pte = (phys & ADDR_MASK) | flags | PTE_PRESENT;
     __asm__ volatile ("invlpg (%0)" : : "r"(virt) : "memory");
 }
-
 void vmm_unmap(uint64_t virt) {
     uint64_t *pte = walk(virt, 0);
     if (pte && (*pte & PTE_PRESENT)) { *pte = 0; __asm__ volatile ("invlpg (%0)" : : "r"(virt) : "memory"); }
 }
-
 uint64_t vmm_translate(uint64_t virt) {
     uint64_t *pte = walk(virt, 0);
     if (!pte || !(*pte & PTE_PRESENT)) return 0;
@@ -84,11 +78,11 @@ void vmm_init(void) {
 
     //low direct map: first 1 GiB with 2 MiB pages, writable but NON-executable
     uint64_t pdpt_phys = (uint64_t)pmm_alloc_frame();
-    uint64_t pd_phys   = (uint64_t)pmm_alloc_frame();
+    uint64_t pd_phys = (uint64_t)pmm_alloc_frame();
     uint64_t *pdpt = p2v(pdpt_phys), *pd = p2v(pd_phys);
     for (int i = 0; i < ENTRIES; i++) { pdpt[i] = 0; pd[i] = 0; }
     pml4[0] = pdpt_phys | PTE_PRESENT | PTE_WRITABLE;
-    pdpt[0] = pd_phys   | PTE_PRESENT | PTE_WRITABLE;
+    pdpt[0] = pd_phys | PTE_PRESENT | PTE_WRITABLE;
     for (int i = 0; i < ENTRIES; i++)
         pd[i] = ((uint64_t)i * 0x200000) | PTE_PRESENT | PTE_WRITABLE | PTE_HUGE | PTE_NX;
 
@@ -98,5 +92,40 @@ void vmm_init(void) {
     map_section((uint64_t)_data_start, (uint64_t)_data_end, PTE_PRESENT | PTE_WRITABLE | PTE_NX); //read/write, no exec
     map_section((uint64_t)_bss_start, (uint64_t)_bss_end, PTE_PRESENT | PTE_WRITABLE | PTE_NX); //read/write, no exec
 
+    vmm_remember_kernel_cr3(pml4_phys);
     __asm__ volatile ("mov %0, %%cr3" : : "r"(pml4_phys) : "memory");
+}
+
+//multiple address spaces
+static uint64_t kernel_pml4_phys_saved;
+void vmm_remember_kernel_cr3(uint64_t phys) { kernel_pml4_phys_saved = phys; }
+uint64_t vmm_kernel_cr3(void) { return kernel_pml4_phys_saved; }
+
+static uint64_t *walk_root(uint64_t *root, uint64_t v, int create) {
+    uint64_t idx[3] = { PML4_IDX(v), PDPT_IDX(v), PD_IDX(v) };
+    uint64_t *t = root;
+    for (int lvl = 0; lvl < 3; lvl++) {
+        if (!(t[idx[lvl]] & PTE_PRESENT)) {
+            if (!create) return 0;
+            uint64_t f = (uint64_t)pmm_alloc_frame();
+            uint64_t *nt = p2v(f);
+            for (int i = 0; i < ENTRIES; i++) nt[i] = 0;
+            t[idx[lvl]] = f | PTE_PRESENT | PTE_WRITABLE | PTE_USER;
+        }
+        t = p2v(t[idx[lvl]] & ADDR_MASK);
+    }
+    return &t[PT_IDX(v)];
+}
+void vmm_map_to(uint64_t root_phys, uint64_t v, uint64_t phys, uint64_t flags) {
+    uint64_t *pte = walk_root((uint64_t *)root_phys, v, 1);
+    *pte = (phys & ADDR_MASK) | flags | PTE_PRESENT;
+}
+uint64_t vmm_new_addrspace(void) {
+    uint64_t phys = (uint64_t)pmm_alloc_frame();
+    uint64_t *root = p2v(phys);
+    uint64_t *kern = p2v(kernel_pml4_phys_saved);
+    for (int i = 0; i < ENTRIES; i++) root[i] = 0;
+    root[0] = kern[0]; //shared kernel direct map
+    root[511] = kern[511]; //shared kernel higher-half
+    return phys;
 }

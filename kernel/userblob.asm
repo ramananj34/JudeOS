@@ -3,5 +3,5 @@ section .rodata
 global user_blob
 global user_blob_end
 user_blob:
-    incbin "build/user.bin"
+    incbin "build/user.elf"
 user_blob_end:

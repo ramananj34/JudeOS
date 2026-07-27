@@ -1,4 +1,6 @@
 #include "syscall.h"
+#include "thread.h"
+extern int current_pid;
 #include "console.h"
 #include <stdint.h>
 
@@ -12,7 +14,7 @@ uint64_t saved_user_rsp; //scratch during entry
 static int valid_user_range(uint64_t ptr, uint64_t len) {
     if (ptr == 0) return 0;
     if (ptr >= USER_LIMIT) return 0; //kernel/high addresses forbidden
-    if (ptr + len < ptr) return 0; //overflow
+    if (ptr + len < ptr) return 0; // overflow
     if (ptr + len > USER_LIMIT) return 0;
     return 1;
 }
@@ -29,9 +31,12 @@ uint64_t syscall_dispatch(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3) {
             for (uint64_t i = 0; i < a2; i++) kputc(s[i]);
             return a2;
         }
-        case 0: //SYS_EXIT(code)
-            kprintf("[syscall] process exited with code %lu\n", a1);
-            for (;;) __asm__ volatile ("cli; hlt");
+        case 2: //SYS_GETPID
+            return (uint64_t)current_pid;
+        case 0: //SYS_EXIT
+            kprintf("\n[syscall] pid %d exited\n", current_pid);
+            thread_exit();
+            return 0;
         default:
             kprintf("[syscall] unknown syscall %lu\n", num);
             return (uint64_t)-1;

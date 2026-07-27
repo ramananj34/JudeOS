@@ -9,4 +9,8 @@
 void vmm_init(void);
 void vmm_map(uint64_t virt, uint64_t phys, uint64_t flags);
 void vmm_unmap(uint64_t virt);
-uint64_t vmm_translate(uint64_t virt); // virt -> phys, or 0 if unmapped
+uint64_t vmm_translate(uint64_t virt); //virt -> phys, or 0 if unmapped
+
+void vmm_map_to(uint64_t root_phys, uint64_t virt, uint64_t phys, uint64_t flags);
+uint64_t vmm_new_addrspace(void);
+uint64_t vmm_kernel_cr3(void);

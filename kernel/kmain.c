@@ -11,6 +11,7 @@
 #include "thread.h"
 #include "spinlock.h"
 #include "syscall.h"
+#include "process.h"
 
 //Thread tests
 /*
@@ -53,8 +54,16 @@ static uint8_t user_stub[] = { 0x90, 0x90, 0xFA, 0xEB, 0xFE };
 */
 
 //Syscall tests
+/*
 extern void enter_user(uint64_t entry, uint64_t stack);
 extern uint8_t user_blob[], user_blob_end[];
+*/
+
+//Process Tests
+/*
+extern uint8_t user_blob[];
+extern int done_count;
+*/
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -174,6 +183,17 @@ void kmain(boot_info_t *info) {
         ((volatile uint8_t *)code)[p - user_blob] = *p;
     kprintf("[user] entering ring 3; it will make system calls...\n");
     enter_user(code, stack + 4096);
+    for (;;) __asm__ volatile ("hlt");
+    */
+
+    
+    /* Process tests
+    __asm__ volatile ("sti");
+    kprintf("[proc] two processes, same ELF, isolated address spaces: ");
+    process_create(user_blob, 1);
+    process_create(user_blob, 2);
+    while (done_count < 2) __asm__ volatile ("hlt");
+    kprintf("\n[proc] both exited. No '!' means isolation held.\n");
     for (;;) __asm__ volatile ("hlt");
     */
 
