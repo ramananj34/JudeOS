@@ -9,13 +9,40 @@
 #include "vmm.h" //Virtual Memory Manager
 #include "kheap.h" //The Heap
 #include "thread.h"
+#include "spinlock.h"
 
 //Thread tests
+/*
 static volatile int done = 0;
 static void busy(void){ for (volatile uint64_t i = 0; i < 4000000; i++); }
 static void tA(void){ for(int i=0;i<12;i++){ kprintf("A"); busy(); } done++; for(;;) busy(); }
 static void tB(void){ for(int i=0;i<12;i++){ kprintf("B"); busy(); } done++; for(;;) busy(); }
 static void tC(void){ for(int i=0;i<12;i++){ kprintf("C"); busy(); } done++; for(;;) busy(); }
+*/
+
+//Spinlock tests
+/*
+#define ITERS 8
+static volatile long counter;
+static volatile int fin;
+static spinlock_t lk = SPINLOCK_INIT;
+//A deliberately WIDE read-modify-write, so a 10ms timer tick reliably lands inside it. This is what exposes the race on a single CPU.
+static void inc_wide(void) {
+    long t = counter;
+    for (volatile int d = 0; d < 1500000; d++);  //widen the window
+    counter = t + 1;
+}
+static void unsafe(void) {
+    for (int i = 0; i < ITERS; i++) inc_wide();
+    fin++;
+    for (;;) __asm__ volatile ("hlt");
+}
+static void safe(void) {
+    for (int i = 0; i < ITERS; i++) { spin_lock(&lk); inc_wide(); spin_unlock(&lk); }
+    fin++;
+    for (;;) __asm__ volatile ("hlt");
+}
+*/
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -100,5 +127,20 @@ void kmain(boot_info_t *info) {
     while (done < 3) busy();
     kprintf("\n[sched] PREEMPTIVE multitasking works.\n");
     */
+
+    /* Spinlock tests
+    counter = 0; fin = 0;
+    kprintf("[lock] test 1: 3 threads, NO lock, %d increments each...\n", ITERS);
+    thread_create(unsafe); thread_create(unsafe); thread_create(unsafe);
+    while (fin < 3) __asm__ volatile ("hlt");
+    kprintf("[lock] counter = %ld, expected %d -> %s\n", counter, 3 * ITERS, counter == 3 * ITERS ? "OK" : "LOST UPDATES (race!)");
+    counter = 0; fin = 0;
+    kprintf("[lock] test 2: 3 threads, WITH spinlock, %d increments each...\n", ITERS);
+    thread_create(safe); thread_create(safe); thread_create(safe);
+    while (fin < 3) __asm__ volatile ("hlt");
+    kprintf("[lock] counter = %ld, expected %d -> %s\n", counter, 3 * ITERS, counter == 3 * ITERS ? "CORRECT" : "still wrong");
+    */
+
+    for (;;) __asm__ volatile ("hlt");
 
 }
