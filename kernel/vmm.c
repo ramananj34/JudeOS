@@ -28,7 +28,7 @@ static uint64_t *walk(uint64_t virt, int create) {
             uint64_t f = (uint64_t)pmm_alloc_frame();
             uint64_t *nt = p2v(f);
             for (int i = 0; i < ENTRIES; i++) nt[i] = 0;
-            t[idx[lvl]] = f | PTE_PRESENT | PTE_WRITABLE;
+            t[idx[lvl]] = f | PTE_PRESENT | PTE_WRITABLE | PTE_USER;
         }
         t = p2v(t[idx[lvl]] & ADDR_MASK);
     }

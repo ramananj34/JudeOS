@@ -44,6 +44,13 @@ static void safe(void) {
 }
 */
 
+//Usermode tests
+/*
+extern void enter_user(uint64_t entry, uint64_t stack);
+//ring-3 machine code: nop; nop; cli (privileged -> #GP); jmp $
+static uint8_t user_stub[] = { 0x90, 0x90, 0xFA, 0xEB, 0xFE };
+*/
+
 //Putting it together
 void kmain(boot_info_t *info) {
     console_init();
@@ -139,6 +146,18 @@ void kmain(boot_info_t *info) {
     thread_create(safe); thread_create(safe); thread_create(safe);
     while (fin < 3) __asm__ volatile ("hlt");
     kprintf("[lock] counter = %ld, expected %d -> %s\n", counter, 3 * ITERS, counter == 3 * ITERS ? "CORRECT" : "still wrong");
+    */
+
+    /* Ring 3 tests
+    uint64_t code = 0x8000000000; //user code page (its own PML4 slot)
+    uint64_t stack = 0x8000010000; //user stack page
+    vmm_map(code, (uint64_t)pmm_alloc_frame(), PTE_USER | PTE_WRITABLE);
+    vmm_map(stack, (uint64_t)pmm_alloc_frame(), PTE_USER | PTE_WRITABLE | PTE_NX);
+    for (unsigned i = 0; i < sizeof(user_stub); i++)
+        ((volatile uint8_t *)code)[i] = user_stub[i];
+    kprintf("[user] dropping to ring 3 at 0x%lx (it will try a privileged 'cli')...\n", code);
+    enter_user(code, stack + 4096); //hand ring 3 a stack top
+    kprintf("[user] SHOULD NOT REACH HERE\n");
     */
 
     for (;;) __asm__ volatile ("hlt");
