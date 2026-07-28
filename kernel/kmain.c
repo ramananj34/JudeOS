@@ -12,6 +12,7 @@
 #include "spinlock.h"
 #include "syscall.h"
 #include "process.h"
+#include "ata.h"
 
 //Thread tests
 /*
@@ -65,8 +66,9 @@ extern uint8_t user_blob[];
 extern int done_count;
 */
 
-//Shell Tests
+/*Shell Tests
 extern uint8_t user_blob[];
+*/
 
 //Putting it together
 void kmain(boot_info_t *info) {
@@ -200,8 +202,21 @@ void kmain(boot_info_t *info) {
     for (;;) __asm__ volatile ("hlt");
     */
 
-    //Shell tests
+    /* Shell tests
     process_create(user_blob, 1);
     for (;;) __asm__ volatile ("hlt");
+    */
+
+    //ATA tests
+    uint8_t buf[512];
+    ata_read(0, 1, buf);
+    kprintf("[ata] sector 0 sig = 0x%x 0x%x\n", buf[510], buf[511]);
+    uint8_t wbuf[512], rbuf[512];
+    for (int i = 0; i < 512; i++) wbuf[i] = (uint8_t)(i ^ 0x5A);
+    ata_write(200, 1, wbuf);
+    ata_read(200, 1, rbuf);
+    int ok = 1;
+    for (int i = 0; i < 512; i++) if (rbuf[i] != wbuf[i]) { ok = 0; break; }
+    kprintf("[ata] sector 200 round-trip: %s\n", ok ? "MATCH" : "MISMATCH");
 
 }

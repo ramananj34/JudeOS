@@ -7,7 +7,7 @@ LDFLAGS := -T kernel/linker.ld
 UCFLAGS := --target=x86_64-unknown-none-elf -ffreestanding -nostdlib -fno-stack-protector -mcmodel=large -Wall
 BUILD := build
 HEADERS := $(wildcard kernel/*.h)
-KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o $(BUILD)/gdt.o $(BUILD)/idt.o $(BUILD)/isr.o $(BUILD)/interrupts.o $(BUILD)/timer.o $(BUILD)/pmm.o $(BUILD)/vmm.o $(BUILD)/kheap.o $(BUILD)/thread.o $(BUILD)/switch.o $(BUILD)/spinlock.o $(BUILD)/usermode.o $(BUILD)/syscall.o $(BUILD)/userblob.o $(BUILD)/process.o
+KOBJS := $(BUILD)/entry.o $(BUILD)/kmain.o $(BUILD)/console.o $(BUILD)/gdt.o $(BUILD)/idt.o $(BUILD)/isr.o $(BUILD)/interrupts.o $(BUILD)/timer.o $(BUILD)/pmm.o $(BUILD)/vmm.o $(BUILD)/kheap.o $(BUILD)/thread.o $(BUILD)/switch.o $(BUILD)/spinlock.o $(BUILD)/usermode.o $(BUILD)/syscall.o $(BUILD)/userblob.o $(BUILD)/process.o $(BUILD)/ata.o
 
 all: $(BUILD)/os.img
 
