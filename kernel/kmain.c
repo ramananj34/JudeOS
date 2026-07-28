@@ -65,6 +65,9 @@ extern uint8_t user_blob[];
 extern int done_count;
 */
 
+//Shell Tests
+extern uint8_t user_blob[];
+
 //Putting it together
 void kmain(boot_info_t *info) {
     console_init();
@@ -196,5 +199,9 @@ void kmain(boot_info_t *info) {
     kprintf("\n[proc] both exited. No '!' means isolation held.\n");
     for (;;) __asm__ volatile ("hlt");
     */
+
+    //Shell tests
+    process_create(user_blob, 1);
+    for (;;) __asm__ volatile ("hlt");
 
 }

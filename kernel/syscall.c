@@ -14,7 +14,7 @@ uint64_t saved_user_rsp; //scratch during entry
 static int valid_user_range(uint64_t ptr, uint64_t len) {
     if (ptr == 0) return 0;
     if (ptr >= USER_LIMIT) return 0; //kernel/high addresses forbidden
-    if (ptr + len < ptr) return 0; // overflow
+    if (ptr + len < ptr) return 0; //overflow
     if (ptr + len > USER_LIMIT) return 0;
     return 1;
 }
@@ -22,14 +22,20 @@ static int valid_user_range(uint64_t ptr, uint64_t len) {
 uint64_t syscall_dispatch(uint64_t num, uint64_t a1, uint64_t a2, uint64_t a3) {
     (void)a3;
     switch (num) {
-        case 1: { //SYS_WRITE(ptr, len)
-            if (!valid_user_range(a1, a2)) {
-                kprintf("[syscall] REJECTED write: bad user pointer 0x%lx\n", a1);
-                return (uint64_t)-1;
-            }
-            const char *s = (const char *)a1;
-            for (uint64_t i = 0; i < a2; i++) kputc(s[i]);
-            return a2;
+        case 1: { //SYS_WRITE(fd, ptr, len)
+            if (a1 != 1 && a1 != 2) return (uint64_t)-1;
+            if (!valid_user_range(a2, a3)) return (uint64_t)-1;
+            const char *s = (const char *)a2;
+            for (uint64_t i = 0; i < a3; i++) kputc(s[i]);
+            return a3;
+        }
+        case 3: { //SYS_READ(fd, ptr, len) -- non-blocking, from serial
+            if (a1 != 0) return (uint64_t)-1;
+            if (!valid_user_range(a2, a3)) return (uint64_t)-1;
+            char *d = (char *)a2;
+            uint64_t n = 0;
+            while (n < a3) { int c = kgetc(); if (c < 0) break; d[n++] = (char)c; }
+            return n;
         }
         case 2: //SYS_GETPID
             return (uint64_t)current_pid;

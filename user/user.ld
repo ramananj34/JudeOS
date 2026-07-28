@@ -1,4 +1,4 @@
-ENTRY(_ustart)
+ENTRY(_start)
 SECTIONS {
     . = 0x8000000000;
     .text ALIGN(4K) : { *(.text*) }
