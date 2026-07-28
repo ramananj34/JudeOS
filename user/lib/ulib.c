@@ -20,6 +20,8 @@ int readline(char *buf, int max){
         while (read(0, &c, 1) <= 0) { } //poll the serial line
         if (c=='\r' || c=='\n'){ buf[i]=0; write(1,"\n",1); return i; }
         if (c==0x7f || c==8){ if(i>0){ i--; write(1,"\b \b",3); } continue; }
-        if (i < max-1){ buf[i++]=c; write(1,&c,1); }   // echo
+        if (i < max-1){ buf[i++]=c; write(1,&c,1); } //echo
     }
 }
+int open(const char *path){ return (int)sys(4, (long)path, 0, 0); }
+int close(int fd){ return (int)sys(5, fd, 0, 0); }

@@ -13,6 +13,7 @@
 #include "syscall.h"
 #include "process.h"
 #include "ata.h"
+#include "fs.h"
 
 //Thread tests
 /*
@@ -66,7 +67,7 @@ extern uint8_t user_blob[];
 extern int done_count;
 */
 
-/*Shell Tests
+/* Shell/fs Tests
 extern uint8_t user_blob[];
 */
 
@@ -208,6 +209,7 @@ void kmain(boot_info_t *info) {
     */
 
     //ATA tests
+    /*
     uint8_t buf[512];
     ata_read(0, 1, buf);
     kprintf("[ata] sector 0 sig = 0x%x 0x%x\n", buf[510], buf[511]);
@@ -218,5 +220,17 @@ void kmain(boot_info_t *info) {
     int ok = 1;
     for (int i = 0; i < 512; i++) if (rbuf[i] != wbuf[i]) { ok = 0; break; }
     kprintf("[ata] sector 200 round-trip: %s\n", ok ? "MATCH" : "MISMATCH");
+    */
+
+    //Filesystem Tests
+    fs_init();
+    /*
+    process_create(user_blob, 1);
+    */
+
+
+
+    
+    for (;;) __asm__ volatile ("hlt");
 
 }

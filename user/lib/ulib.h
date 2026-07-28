@@ -8,3 +8,5 @@ size_t strlen(const char *s);
 int streq(const char *a, const char *b);
 void puts(const char *s);
 int readline(char *buf, int max);
+int open(const char *path);
+int close(int fd);
